@@ -283,7 +283,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "experiment_number",
-        metavar="exp_no",
+        metavar="experiment_number",
         type=int,
         choices=range(1, 11),
         help="An integer in the range 1-10 inclusive",
