@@ -35,6 +35,10 @@ Below is a table detailing a short description for each experiment.
 | 12_all| Repeat experiments 3-9 in one bag for approximately 10 minutes|
 
 ## Running the demo
+The datasets for the demo are located in the zip file `preprocessed.zip`, which
+is a `git lfs` file. (Please see the instructions on [Cloning the
+repository](#cloning-the-repository).
+
 Create a new virtual environment:
 ```
 python3 -m venv venv
@@ -46,7 +50,7 @@ pip install -r /path/to/requirements.txt
 ```
 Alternatively:
 ```
-pip install numpy matplotlib dqrobotics
+pip install numpy matplotlib dqrobotics pandas
 ```
 Mac M1 users may have problems installing the dqrobotics library, or receive wrong architecture warnings when running the script. The following should fix that:
 ```
@@ -54,6 +58,11 @@ pip uninstall dqrobotics
 python -m pip install 'dqrobotics @ git+https://github.com/dqrobotics/python.git'
 ```
 Before running the script, ensure that demo.py is executable and that all the files `preprocesed.zip` have been properly extracated.
+
+The script requires an experiment number from 1 to 10 and can be run on the command line in the usual way. For Linux and Mac users:
+```
+`./demo.py <number>`.
+```
 
 After the script executes you should see a plot such as:
 ![](images/Figure_1.png)
