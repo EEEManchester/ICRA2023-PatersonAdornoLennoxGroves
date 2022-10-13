@@ -42,11 +42,11 @@ class Data:
 
 def plot_traj(time_stamps, calibration_time, ground_truth, dead_reckoning, seconds_to_plot=120):
     fig, ax = plt.subplots(figsize=(13, 7))
-    
+
     # Control how much of the experiment is plotted
     seconds_to_plot_index, = np.where(time_stamps == seconds_to_plot)
-    first_point_ground_truth = calibration_time 
-    
+    first_point_ground_truth = calibration_time
+
     # Plotting the whole experiment is possible by setting the last points to -1
     last_point_ground_truth = seconds_to_plot_index[0] + calibration_time
     last_point_dr = seconds_to_plot_index[0]
@@ -55,11 +55,11 @@ def plot_traj(time_stamps, calibration_time, ground_truth, dead_reckoning, secon
     gt_y = ground_truth[1, first_point_ground_truth:last_point_ground_truth]
     dr_x = dead_reckoning[0, 0:last_point_dr]
     dr_y = dead_reckoning[1, 0:last_point_dr]
-    
+
     # Check first points are equal
     assert_almost_equal(gt_x[0], dr_x[0], decimal=15)
     assert_almost_equal(gt_y[0], dr_y[0], decimal=15)
-    
+
     # Check plotting same number of data points
     assert_equal(ground_truth[0,first_point_ground_truth:last_point_ground_truth].size, dr_x.size)
     assert_equal(ground_truth[1,first_point_ground_truth:last_point_ground_truth].size, dr_y.size)
@@ -81,7 +81,7 @@ def plot_traj(time_stamps, calibration_time, ground_truth, dead_reckoning, secon
 
     ax.add_collection(lc_gt)
     cbar = fig.colorbar(line, label="Time (s)", pad=0.01)
-    
+
     ax.plot(ground_truth[0, first_point_ground_truth:last_point_ground_truth],
              ground_truth[1, first_point_ground_truth:last_point_ground_truth],
              ":",
@@ -109,7 +109,7 @@ def plot_traj(time_stamps, calibration_time, ground_truth, dead_reckoning, secon
                        markeredgewidth=2,
                        label="End Points"
                        )
-    
+
     ax.plot(dead_reckoning[0, last_point_dr-1],
             dead_reckoning[1, last_point_dr-1],
             marker = 'x',
@@ -117,16 +117,16 @@ def plot_traj(time_stamps, calibration_time, ground_truth, dead_reckoning, secon
             markeredgecolor='black',
             markeredgewidth=2
             )
-    
+
     ax.set_xlabel("X (m)")
     ax.set_ylabel("Y (m)")
 
     ax.legend()
     ax.set_ylim([0.0, 2.6])
-    
+
     ax.xaxis.grid()
     ax.yaxis.grid()
-    fig.show()
+    plt.show()
 
 def main():
     experiments = {
@@ -158,7 +158,7 @@ def main():
             dvl_csv_path=dvl_data,
         )
     )
-    
+
     ground_truth = data.vicon_positions
 
     vicon_orientation_quat = data.vicon_orientation
@@ -189,7 +189,7 @@ def main():
         np.cos(np.pi / 4) + dq.i_ * np.sin(np.pi / 4)
     )
 
-    
+
     deadreckon = dr.generate_dualQ(
         data,
         calibration_time=calibration_time,
@@ -198,7 +198,6 @@ def main():
     )
 
     plot_traj(time_stamps, calibration_time, ground_truth, deadreckon, seconds_to_plot=120)
-    input()
 
 if __name__ == "__main__":
     main()

@@ -34,6 +34,26 @@ Below is a table detailing a short description for each experiment.
 | 11_rnd_drive_data| Drive MallARD around the pool in freestyle or arbitrary manner for approximately 10 minutes |
 | 12_all| Repeat experiments 3-9 in one bag for approximately 10 minutes|
 
+## Running the demo
+Create a new virtual environment:
+```
+python3 -m venv venv
+source venv/bin/activate
+```
+A `requirements.txt` file is provided. To install all the necessary modules with pip:
+```
+pip install -r /path/to/requirements.txt
+```
+Alternatively:
+```
+pip install numpy matplotlib dqrobotics
+```
+Mac M1 users may have problems installing the dqrobotics library, or receive wrong architecture warnings when running the script. The following should fix that:
+```
+pip uninstall dqrobotics
+python -m pip install 'dqrobotics @ git+https://github.com/dqrobotics/python.git'
+```
+Before running the script, ensure that demo.py is executable and that all the files `preprocesed.zip` have been properly extracated.
 
 ## Cloning the repository
 `git lfs` is required to successfully clone the datasets. To check whether `git lfs` is installed enter the following command into the terminal:
