@@ -57,3 +57,7 @@ Clone the repo
 ```
 git clone https://github.com/EEEManchester/ICRA2023-PatersonAdornoLennoxGroves
 ```
+If you have already cloned the repo prior to installing `git lfs`, you will need to:
+```
+git lfs pull
+```
