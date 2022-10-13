@@ -55,6 +55,9 @@ python -m pip install 'dqrobotics @ git+https://github.com/dqrobotics/python.git
 ```
 Before running the script, ensure that demo.py is executable and that all the files `preprocesed.zip` have been properly extracated.
 
+After the script executes you should see a plot such as:
+![](images/Figure_1.png)
+
 ## Cloning the repository
 `git lfs` is required to successfully clone the datasets. To check whether `git lfs` is installed enter the following command into the terminal:
 ```
