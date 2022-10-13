@@ -46,7 +46,7 @@ pip install -r /path/to/requirements.txt
 ```
 Alternatively:
 ```
-pip install numpy matplotlib dqrobotics
+pip install numpy matplotlib dqrobotics pandas
 ```
 Mac M1 users may have problems installing the dqrobotics library, or receive wrong architecture warnings when running the script. The following should fix that:
 ```
