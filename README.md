@@ -33,7 +33,15 @@ Mac M1 users may have problems installing the dqrobotics library, or receive wro
 pip uninstall dqrobotics
 python -m pip install 'dqrobotics @ git+https://github.com/dqrobotics/python.git'
 ```
-Before running the script, ensure that demo.py is executable and that all the files `preprocesed.zip` have been properly extracated.
+Before running the script, ensure that `demo.py` is executable and that all the
+files in `preprocesed.zip` have been properly extracated. The script expects to
+find a csv file in a folder called preprocesed, ensure that the file path to
+the csv relative to the `demo.py` file is `./preprocessed/<experiment_name>.csv`.
+
+The easiest way to do this is using the `unzip` utility on the commandline:
+```
+unzip preprocesed.zip
+```
 
 The script requires an experiment number from 1 to 10 (see [Experiment
 Descriptions](#experiment-descriptions)) and can be run on the command line in
