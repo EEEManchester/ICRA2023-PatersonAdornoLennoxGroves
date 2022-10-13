@@ -281,10 +281,6 @@ if __name__ == "__main__":
         description="Demo.py Plot dead reckoning trajectories"
     )
 
-    if len(sys.argv) == 1:
-        parser.print_help()
-        parser.exit()
-
     parser.add_argument(
         "experiment_number",
         metavar="exp_no",
@@ -292,6 +288,10 @@ if __name__ == "__main__":
         choices=range(1, 11),
         help="An integer in the range 1-10 inclusive",
     )
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        parser.exit()
 
     args = parser.parse_args()
     main(args.experiment_number)
