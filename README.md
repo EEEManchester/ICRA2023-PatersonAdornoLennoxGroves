@@ -51,7 +51,7 @@ The most similar command is
 based systems:
 ```
 sudo apt update
-sudp apt install git-lfs
+sudo apt install git-lfs
 ```
 Clone the repo
 ```
