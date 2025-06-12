@@ -267,6 +267,11 @@ def main(experiment_number):
         initial_pos=initial_pos,
     )
 
+    print(deadreckon.shape)
+    print(deadreckon [:,8670])
+
+
+
     plot_traj(
         time_stamps,
         calibration_time,

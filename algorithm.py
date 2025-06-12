@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 This file is a python port of an identically named Matlab version.
 The following comment is reproduced directly from there:
@@ -43,7 +45,7 @@ with the imaginary unit k_ !
 import numpy as np
 import dqrobotics as dq
 
-def process_single_gravity_measurement(g_I_k, k, g_avg_previous, r_W_I_estimated, T):
+def process_single_gravity_measurement(g_I_k, k, g_avg_previous, r_B_I_estimated, dt):
     """
     Process a single gravity vector measurement to update the IMU rotation estimate.
     """
@@ -54,26 +56,32 @@ def process_single_gravity_measurement(g_I_k, k, g_avg_previous, r_W_I_estimated
     # T: The time step duration (sampling period), used in the exponential map for updating the rotation.
 
 
-    # make gravity vector a DQ object and normalise it
+    # Make current IMU frame gravity vector a DQ object and normalise it
     g_I_DQ = dq.DQ(g_I_k)
     g_I_normalised = dq.normalize(g_I_DQ)
 
-    # Running average of gravity vectors
+    # Algorithm line 7 in paper
+    # Running average of gravity vector in imu frame - slightly different from paper to avoid division by 0
     g_avg = dq.DQ(dq.vec3(g_I_normalised) / (k + 1)) + (k / (k + 1)) * g_avg_previous
 
+    # Algrithm line 8 n paper
     # Estimate gravity in world frame
-    g_W_estimated = dq.Ad(r_W_I_estimated, g_avg)
+    g_B_estimated = dq.Ad(r_B_I_estimated, g_avg)
 
-    # Compute correction
+    # Algorithm line 9 in paper
+    # Compute correction anglular velocity. Lambda(gain)=10 as per the paper
     gain = 10
-    w_W_W_I = gain * dq.cross(g_W_estimated, dq.k_)
-    r_W_I_estimated = dq.exp(0.5 * T * w_W_W_I) * r_W_I_estimated
+    w_B_B_I = gain * dq.cross(g_B_estimated, dq.k_)
+
+    # Algorithm line 10 in paper
+    # update the rotation of
+    r_B_I_estimated = dq.exp(0.5 * dt * w_B_B_I) * r_B_I_estimated
 
     # Compute error
-    g_error = g_W_estimated - dq.k_
+    g_error = g_B_estimated - dq.k_
     norm_g_error = dq.vec8(dq.norm(g_error))[0]
 
-    return r_W_I_estimated, norm_g_error, g_avg
+    return r_B_I_estimated, norm_g_error, g_avg
 
 
 def imu_rotation_generator(g_I, r_W_I_estimated, T):
@@ -90,7 +98,6 @@ def imu_rotation_generator(g_I, r_W_I_estimated, T):
         )
         g_avg_previous = g_avg
         yield r_W_I_estimated, norm_g_error, g_avg
-    
 
 def generate_dualQ(
     data,
