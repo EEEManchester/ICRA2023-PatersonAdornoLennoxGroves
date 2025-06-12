@@ -40,10 +40,10 @@ unzip preprocesed.zip
 ```
 
 The script requires an experiment number from 1 to 10 (see [Experiment
-Descriptions](#experiment-descriptions)) and can be run on the command line in
-the usual way. For Linux and Mac users:
+Descriptions](#experiment-descriptions)) which is set at the bottom of the `demo.py` script. `demo.py` can be run on the command line in
+the usual way. For Linux users:
 ```
-`./demo.py <number>`.
+python3 demo.py.
 ```
 
 After the script executes you should see a plot such as:
