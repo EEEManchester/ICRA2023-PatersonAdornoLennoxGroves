@@ -277,21 +277,10 @@ def main(experiment_number):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Demo.py Plot dead reckoning trajectories"
-    )
+    # your experiment here:
+    experiment_number = 3
 
-    parser.add_argument(
-        "experiment_number",
-        metavar="experiment_number",
-        type=int,
-        choices=range(1, 11),
-        help="An integer in the range 1-10 inclusive",
-    )
+    # sanity check
+    assert 1 <= experiment_number <= 10, "experiment_number must be 1–10"
 
-    if len(sys.argv) == 1:
-        parser.print_help()
-        parser.exit()
-
-    args = parser.parse_args()
-    main(args.experiment_number)
+    main(experiment_number)
