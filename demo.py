@@ -278,8 +278,7 @@ def main(experiment_number):
 
 if __name__ == "__main__":
     # your experiment here:
-    experiment_number = 3
-
+    experiment_number = 7
     # sanity check
     assert 1 <= experiment_number <= 10, "experiment_number must be 1–10"
 
