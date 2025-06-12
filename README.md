@@ -20,11 +20,7 @@ Create a new virtual environment:
 python3 -m venv venv
 source venv/bin/activate
 ```
-A `requirements.txt` file is provided. To install all the necessary modules with pip:
-```
-pip install -r /path/to/requirements.txt
-```
-Alternatively:
+Install the required packages:
 ```
 pip install numpy matplotlib dqrobotics pandas
 ```
