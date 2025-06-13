@@ -77,6 +77,8 @@ def process_single_gravity_measurement(g_I_k, k, g_avg_previous, r_B_I_estimated
     # update the rotation of
     r_B_I_estimated = dq.exp(0.5 * dt * w_B_B_I) * r_B_I_estimated
 
+    # if k<<210: print(r_B_I_estimated)
+
     # Compute error
     g_error = g_B_estimated - dq.k_
     norm_g_error = dq.vec8(dq.norm(g_error))[0]
@@ -131,19 +133,19 @@ def generate_dualQ(
 
     w_Bkminus1_Bk_wrt_Bkminus1 = dq.DQ([1])
     w_Bkminus1_Bk_wrt_Bkminus1_vec = np.zeros(end)
-    g_vec = np.zeros((3,end +1))
+    g_error_vec = np.zeros((3,end +1))
     # Calibrate the IMU rotation - run the generrotation fixer for 4 seconds before starting   - it updates it's own kk
-
-    g_avg_previous = dq.DQ([0])
-    g_avg_previous_test = g_avg_previous
+    # Starting gravity vector
+    g_avg = dq.DQ([0])
+    # g_avg_previous_test = g_avg_previous
     g_I = imu_lin_acc_data
 
     for k in range(0, calibration_time + 1):
         
         g_I_k = [g_I[0, k], g_I[1, k], g_I[2, k]]
-        r_W_I_estimated_test, norm_g_error_test, gavg_test =  process_single_gravity_measurement(g_I_k, k, g_avg_previous_test, r_W_I_estimated, dt)
-        g_avg_previous_test = gavg_test
-        r_W_I_estimated, norm_g_error[k], gavg = next(imu_rotation)
+        r_W_I_estimated, norm_g_error, g_avg =  process_single_gravity_measurement(g_I_k, k, g_avg, r_W_I_estimated, dt)
+        
+        # r_W_I_estimated, norm_g_error[k], gavg = next(imu_rotation)
         # g_vec[:,k+1] = dq.vec3(gavg)
         # w_Ikminus1_Ik_wrt_Ikminus1 = dq.DQ(
         #     [imu_ang_vel_data[0, k], imu_ang_vel_data[1, k], imu_ang_vel_data[2, k]]
@@ -162,8 +164,10 @@ def generate_dualQ(
     yaw[index_for_DR] = x_W_Bkminus1.rotation_angle()
 
     for k in range(calibration_time + 1, end):
-        r_W_I_estimated, norm_g_error[k], gavg = next(imu_rotation)
-        g_vec[:,k+1] = dq.vec3(gavg)
+        
+        g_I_k = [g_I[0, k], g_I[1, k], g_I[2, k]]
+        r_W_I_estimated, norm_g_error, g_avg =  process_single_gravity_measurement(g_I_k, k, g_avg, r_W_I_estimated, dt)        
+        g_error_vec[:,k] = norm_g_error
 
         # Measured angular velocity in the IMU/BODY/DVL frame. Because of the
         # discretization, this angular velocity is the velocity of the body
