@@ -84,7 +84,7 @@ def process_single_gravity_measurement(g_I_k, k, g_avg_previous, r_B_I_estimated
     return r_B_I_estimated, norm_g_error, g_avg
 
 
-def imu_rotation_generator(g_I, r_W_I_estimated, T):
+def imu_rotation_generator(g_I, r_W_I_estimated, dt):
     """
     Generator that yields updated IMU rotation estimates over time.
     """
@@ -94,7 +94,7 @@ def imu_rotation_generator(g_I, r_W_I_estimated, T):
     for k in range(g_I.shape[1]):
         g_I_k = [g_I[0, k], g_I[1, k], g_I[2, k]]
         r_W_I_estimated, norm_g_error, g_avg = process_single_gravity_measurement(
-            g_I_k, k, g_avg_previous, r_W_I_estimated, T
+            g_I_k, k, g_avg_previous, r_W_I_estimated, dt
         )
         g_avg_previous = g_avg
         yield r_W_I_estimated, norm_g_error, g_avg
@@ -117,7 +117,7 @@ def generate_dualQ(
     #  (they start aligned)
     x_W_Bkminus1 = initial_pos
     # Sampling period used in the numerical integration in seconds
-    T = 1 / freq
+    dt = 1 / freq
 
     # Initial twist between the body frame at instant k-1 and the w.r.t. world.
     twist_W_Bkminus1_wrt_W = 0
@@ -126,7 +126,7 @@ def generate_dualQ(
 
     norm_g_error = np.zeros(end)
 
-    imu_rotation = imu_rotation_generator(g_I=imu_lin_acc_data, r_W_I_estimated=r_W_I_estimated, T=T)
+    imu_rotation = imu_rotation_generator(g_I=imu_lin_acc_data, r_W_I_estimated=r_W_I_estimated, dt=dt)
 
     w_Bkminus1_Bk_wrt_Bkminus1 = dq.DQ([1])
     w_Bkminus1_Bk_wrt_Bkminus1_vec = np.zeros(end)
@@ -196,7 +196,7 @@ def generate_dualQ(
 
         # Numerically integrate the pose using the up-to-date measured twist in the
         # world frame
-        x_W_Bk = dq.exp((T / 2) * twist_W_Bk_wrt_W) * x_W_Bkminus1
+        x_W_Bk = dq.exp((dt / 2) * twist_W_Bk_wrt_W) * x_W_Bkminus1
         x_W_Bkminus1 = x_W_Bk
 
         dual_quat_translation = dq.vec3(x_W_Bk.translation())
