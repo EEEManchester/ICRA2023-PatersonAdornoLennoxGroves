@@ -77,7 +77,6 @@ def process_single_gravity_measurement(g_I_k, k, g_avg_previous, r_B_I_estimated
     # update the rotation of
     r_B_I_estimated = dq.exp(0.5 * dt * w_B_B_I) * r_B_I_estimated
 
-    # if k<<210: print(r_B_I_estimated)
 
     # Compute error
     g_error = g_B_estimated - dq.k_
@@ -86,21 +85,6 @@ def process_single_gravity_measurement(g_I_k, k, g_avg_previous, r_B_I_estimated
     return r_B_I_estimated, norm_g_error, g_avg
 
 
-def imu_rotation_generator(g_I, r_W_I_estimated, dt):
-    """
-    Generator that yields updated IMU rotation estimates over time.
-    """
-    r_W_I_estimated = dq.normalize(r_W_I_estimated)
-    g_avg_previous = dq.DQ([0])
-
-    for kk in range(g_I.shape[1]):
-        g_I_k = [g_I[0, kk], g_I[1, kk], g_I[2, kk]]
-        # print (kk)
-        r_W_I_estimated, norm_g_error, g_avg = process_single_gravity_measurement(
-            g_I_k, kk, g_avg_previous, r_W_I_estimated, dt
-        )
-        g_avg_previous = g_avg
-        yield r_W_I_estimated, norm_g_error, g_avg
 
 def generate_dualQ(
     data,
@@ -113,7 +97,7 @@ def generate_dualQ(
     imu_ang_vel_data = data.imu_angular_velocities
     imu_lin_acc_data = data.imu_linear_accelerations
 
-    # DVL rotation
+    # DVL rotation of 180 about x axis
     r_B_D = dq.i_
 
     # Pose of the body frame at instant k-1 with respect to the world
@@ -126,10 +110,9 @@ def generate_dualQ(
     twist_W_Bkminus1_wrt_W = 0
 
     end = len(dvl_vel_data[0]) 
-
     norm_g_error = np.zeros(end)
 
-    imu_rotation = imu_rotation_generator(g_I=imu_lin_acc_data, r_W_I_estimated=r_W_I_estimated, dt=dt)
+    # imu_rotation = imu_rotation_generator(g_I=imu_lin_acc_data, r_W_I_estimated=r_W_I_estimated, dt=dt)
 
     w_Bkminus1_Bk_wrt_Bkminus1 = dq.DQ([1])
     w_Bkminus1_Bk_wrt_Bkminus1_vec = np.zeros(end)
@@ -144,15 +127,7 @@ def generate_dualQ(
         
         g_I_k = [g_I[0, k], g_I[1, k], g_I[2, k]]
         r_W_I_estimated, norm_g_error, g_avg =  process_single_gravity_measurement(g_I_k, k, g_avg, r_W_I_estimated, dt)
-        
-        # r_W_I_estimated, norm_g_error[k], gavg = next(imu_rotation)
-        # g_vec[:,k+1] = dq.vec3(gavg)
-        # w_Ikminus1_Ik_wrt_Ikminus1 = dq.DQ(
-        #     [imu_ang_vel_data[0, k], imu_ang_vel_data[1, k], imu_ang_vel_data[2, k]]
-        # )
-
-        # w_Bkminus1_Bk_wrt_Bkminus1 = dq.Ad(r_W_I_estimated, w_Ikminus1_Ik_wrt_Ikminus1)
-        # w_Bkminus1_Bk_wrt_Bkminus1_vec[k] = dq.vec3(w_Bkminus1_Bk_wrt_Bkminus1)[2]
+    
 
     DR_x_and_y = np.zeros((2, (end - calibration_time + 1)))
     # Store initial point
@@ -164,8 +139,9 @@ def generate_dualQ(
     yaw[index_for_DR] = x_W_Bkminus1.rotation_angle()
 
     for k in range(calibration_time + 1, end):
-        
+        # Pull a single IMU gravity vector from the data
         g_I_k = [g_I[0, k], g_I[1, k], g_I[2, k]]
+        # Find the rotation from 
         r_W_I_estimated, norm_g_error, g_avg =  process_single_gravity_measurement(g_I_k, k, g_avg, r_W_I_estimated, dt)        
         g_error_vec[:,k] = norm_g_error
 
@@ -174,11 +150,12 @@ def generate_dualQ(
         # frame at instant k (B_k) with respect to the body frame at
         # k-1 (B_{k-1}),  expressed in the body frame at k-1 (B_{k-1})
 
+        # angular velocities in dq in IMU frame
         w_Ikminus1_Ik_wrt_Ikminus1 = dq.DQ(
-            [imu_ang_vel_data[0, k], imu_ang_vel_data[1, k], imu_ang_vel_data[2, k]]
-        )
-
+            [imu_ang_vel_data[0, k], imu_ang_vel_data[1, k], imu_ang_vel_data[2, k]])
+        # angular velocities in body frame
         w_Bkminus1_Bk_wrt_Bkminus1 = dq.Ad(r_W_I_estimated, w_Ikminus1_Ik_wrt_Ikminus1)
+        #vector for recording results
         w_Bkminus1_Bk_wrt_Bkminus1_vec[k] = dq.vec3(w_Bkminus1_Bk_wrt_Bkminus1)[2]
 
         # Measured linear velocity (v) in the IMU/BODY/DVL frame.
