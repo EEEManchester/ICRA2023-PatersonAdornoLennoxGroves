@@ -91,10 +91,11 @@ def imu_rotation_generator(g_I, r_W_I_estimated, dt):
     r_W_I_estimated = dq.normalize(r_W_I_estimated)
     g_avg_previous = dq.DQ([0])
 
-    for k in range(g_I.shape[1]):
-        g_I_k = [g_I[0, k], g_I[1, k], g_I[2, k]]
+    for kk in range(g_I.shape[1]):
+        g_I_k = [g_I[0, kk], g_I[1, kk], g_I[2, kk]]
+        # print (kk)
         r_W_I_estimated, norm_g_error, g_avg = process_single_gravity_measurement(
-            g_I_k, k, g_avg_previous, r_W_I_estimated, dt
+            g_I_k, kk, g_avg_previous, r_W_I_estimated, dt
         )
         g_avg_previous = g_avg
         yield r_W_I_estimated, norm_g_error, g_avg
@@ -131,16 +132,25 @@ def generate_dualQ(
     w_Bkminus1_Bk_wrt_Bkminus1 = dq.DQ([1])
     w_Bkminus1_Bk_wrt_Bkminus1_vec = np.zeros(end)
     g_vec = np.zeros((3,end +1))
-    # Calibrate the IMU rotation
-    for k in range(0, calibration_time + 1):
-        r_W_I_estimated, norm_g_error[k], gavg = next(imu_rotation)
-        g_vec[:,k+1] = dq.vec3(gavg)
-        w_Ikminus1_Ik_wrt_Ikminus1 = dq.DQ(
-            [imu_ang_vel_data[0, k], imu_ang_vel_data[1, k], imu_ang_vel_data[2, k]]
-        )
+    # Calibrate the IMU rotation - run the generrotation fixer for 4 seconds before starting   - it updates it's own kk
 
-        w_Bkminus1_Bk_wrt_Bkminus1 = dq.Ad(r_W_I_estimated, w_Ikminus1_Ik_wrt_Ikminus1)
-        w_Bkminus1_Bk_wrt_Bkminus1_vec[k] = dq.vec3(w_Bkminus1_Bk_wrt_Bkminus1)[2]
+    g_avg_previous = dq.DQ([0])
+    g_avg_previous_test = g_avg_previous
+    g_I = imu_lin_acc_data
+
+    for k in range(0, calibration_time + 1):
+        
+        g_I_k = [g_I[0, k], g_I[1, k], g_I[2, k]]
+        r_W_I_estimated_test, norm_g_error_test, gavg_test =  process_single_gravity_measurement(g_I_k, k, g_avg_previous_test, r_W_I_estimated, dt)
+        g_avg_previous_test = gavg_test
+        r_W_I_estimated, norm_g_error[k], gavg = next(imu_rotation)
+        # g_vec[:,k+1] = dq.vec3(gavg)
+        # w_Ikminus1_Ik_wrt_Ikminus1 = dq.DQ(
+        #     [imu_ang_vel_data[0, k], imu_ang_vel_data[1, k], imu_ang_vel_data[2, k]]
+        # )
+
+        # w_Bkminus1_Bk_wrt_Bkminus1 = dq.Ad(r_W_I_estimated, w_Ikminus1_Ik_wrt_Ikminus1)
+        # w_Bkminus1_Bk_wrt_Bkminus1_vec[k] = dq.vec3(w_Bkminus1_Bk_wrt_Bkminus1)[2]
 
     DR_x_and_y = np.zeros((2, (end - calibration_time + 1)))
     # Store initial point
