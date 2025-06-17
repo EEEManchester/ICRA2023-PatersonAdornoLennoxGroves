@@ -7,25 +7,7 @@ Result of weekly meetings between Jessica Paterson, Keir Groves, and Bruno Adorn
 
 Conventions:
  - Variables x_sup_sub represent x^{sup}_{sub} in LaTeX
- - Variables p_sub1_sub2_wrt_sup represent p^{sup}_{sub1,sub2} in LaTeX
- --> FOR EXAMPLE, x_1_2, which in LaTeX would be $x^1_2$ might represent
-the rigid motion from the initial frame F_1 to the final frame F_2.
-
-- VARIABLES that would normally be written as $p^{sup}_{sub1,sub2}$ in
-LaTex, such as translations and twists, are written as
-p_sub1_sub2_wrt_sup in the code.
-
---> FOR EXAMPLE, p_1_2_wrt_1, which in LaTeX would be written as
-$p^1_{1,2}$ might represent the translation from the initial frame F_1 to
-the final frame F_2 with respect to the frame F_1 (i.e., the coordinates
-of p are expressed in frame F_1).
---> FOR EXAMPLE, twist_WORLD_IMU_wrt_WORLD might represent the twist
-between the WORLD and the IMU with respect to the WORLD (that is, the
-action that generates the twist is seen from the world frame).
---> FOR EXAMPLE, twist_WORLD_IMU_wrt_ANOTHERFRAME might represent the twist
-between the WORLD and the IMU with respect to ANOTHERFRAME (that is, the
-action that generates the twist is seen from ANOTHERFRAME, which might be
-neither the world frame nor the IMU frame.
+ - Variables p_sup_sub1sub2 represent p^{sup}_{sub1,sub2} in LaTeX
 
 
 Current assumptions for this simulation:
@@ -96,7 +78,7 @@ def generate_dualQ(
     r_B_D = dq.i_
 
     # Initialize pose and twist
-    x_W_Bkminus1 = initial_pos  # x̂W_B[0]
+    x_W_B_kminus1 = initial_pos  # x̂W_B[0]
     dt = 1 / freq               # Sampling time T (line 1)
     # twist_W_Bkminus1_wrt_W = 0  # ξ̂W_W,B[0]
 
@@ -107,42 +89,42 @@ def generate_dualQ(
     g_avg = dq.DQ([0])          # ḡI[0]
     for k in range(0, calibration_time + 1):
         g_I_k = [imu_lin_acc_data[0, k], imu_lin_acc_data[1, k], imu_lin_acc_data[2, k]]
-        r_B_I_estimated, g_avg = process_single_gravity_measurement(g_I_k, k, g_avg, r_B_I_estimated, dt)
+        r_hat_B_I, g_avg = process_single_gravity_measurement(g_I_k, k, g_avg, r_B_I_estimated, dt)
 
     # Prepare outputs for dead reckoning path
     DR_x_and_y = np.zeros((2, (end - calibration_time + 1)))
     start_pt = dq.vec3(initial_pos.translation())
     DR_x_and_y[:, 0] = start_pt[:2]
     yaw = np.zeros(end - calibration_time + 1)
-    yaw[0] = x_W_Bkminus1.rotation_angle()
+    yaw[0] = x_W_B_kminus1.rotation_angle()
     index_for_DR = 1
 
     # Dead reckoning loop (Algorithm 1 lines 12–16)
     for k in range(calibration_time + 1, end):
         # pull single occurences of data from stored array
         g_I_k = [imu_lin_acc_data[0, k], imu_lin_acc_data[1, k], imu_lin_acc_data[2, k]]
-        omega_I_k = [imu_ang_vel_data[0, k], imu_ang_vel_data[1, k], imu_ang_vel_data[2, k]]
+        w_I = [imu_ang_vel_data[0, k], imu_ang_vel_data[1, k], imu_ang_vel_data[2, k]]
         v_D_k = [dvl_vel_data[0, k], dvl_vel_data[1, k], dvl_vel_data[2, k]]
 
-        r_B_I_estimated, g_avg = process_single_gravity_measurement(g_I_k, k, g_avg, r_B_I_estimated, dt)
+        r_hat_B_I, g_avg = process_single_gravity_measurement(g_I_k, k, g_avg, r_hat_B_I, dt)
 
         # Body-frame angular velocity ω̂W,B[n] (line 12)
-        w_Bkminus1_Bk_wrt_Bkminus1 = dq.Ad(r_B_I_estimated,dq.DQ(omega_I_k))
+        w_hat_B_WB = dq.Ad(r_hat_B_I,dq.DQ(w_I))
 
         # DVL linear velocity projection (line 13)
         p_hat_dot_B_WB = dq.Ad(r_B_D, dq.DQ(v_D_k))
 
         # Combine angular + linear into dual twist ξ̂B_W,B[n] (line 15)
-        twist = w_Bkminus1_Bk_wrt_Bkminus1 + dq.E_ * p_hat_dot_B_WB
+        twist_hat_B_WB = w_hat_B_WB + dq.E_ * p_hat_dot_B_WB
 
         # Integrate pose with world-frame twist (line 16)
-        x_W_Bk = x_W_Bkminus1 * dq.exp((dt / 2) * twist)
-        x_W_Bkminus1 = x_W_Bk
+        x_W_B_k = x_W_B_kminus1 * dq.exp((dt / 2) * twist_hat_B_WB)
+        x_W_B_kminus1 = x_W_B_k
 
         # Record dead-reckoned position
-        pt = dq.vec3(x_W_Bk.translation())
+        pt = dq.vec3(x_W_B_k.translation())
         DR_x_and_y[:, index_for_DR] = pt[:2]
-        yaw[index_for_DR] = x_W_Bk.rotation_angle()
+        yaw[index_for_DR] = x_W_B_k.rotation_angle()
         index_for_DR += 1
 
     return DR_x_and_y
