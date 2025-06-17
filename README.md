@@ -17,8 +17,8 @@ repository](#cloning-the-repository).
 
 Create a new virtual environment:
 ```
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 Install the required packages:
 ```
