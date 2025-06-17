@@ -19,23 +19,6 @@ with the imaginary unit k_ !
 import numpy as np
 import dqrobotics as dq
 
-
-def dead_reckoning_step(r_hat_B_I, r_B_D, w_I, v_D_k, x_prev, dt):
-    """
-    
-    computes body-frame angular velocity, DVL projection, twist, and integrates pose.
-    """
-    # Body-frame angular velocity ω̂W,B (line 12)
-    w_hat_B_WB = dq.Ad(r_hat_B_I, dq.DQ(w_I))
-    # DVL linear velocity projection (line 13)
-    p_hat_dot_B_WB = dq.Ad(r_B_D, dq.DQ(v_D_k))
-    # Combine angular + linear into dual twist ξ̂B_W,B (line 15)
-    twist_hat_B_WB = w_hat_B_WB + dq.E_ * p_hat_dot_B_WB
-    # Integrate pose with world-frame twist (line 16)
-    x_W_B_k = x_prev * dq.exp((dt / 2) * twist_hat_B_WB)
-    return x_W_B_k
-
-
 def rotation_estimate_step(g_I_k, k, g_avg_kminus1, r_hat_B_I_kminus1, dt):
     """
     Process one gravity vector measurement to update IMU-to-body rotation estimate.
@@ -65,6 +48,23 @@ def rotation_estimate_step(g_I_k, k, g_avg_kminus1, r_hat_B_I_kminus1, dt):
     # norm_g_error = dq.vec8(dq.norm(g_error))[0]
 
     return r_hat_B_I_k, g_avg_I_k
+
+
+def dead_reckoning_step(r_hat_B_I, r_B_D, w_I, v_D_k, x_prev, dt):
+    """
+    
+    computes body-frame angular velocity, DVL projection, twist, and integrates pose.
+    """
+    # Body-frame angular velocity ω̂W,B (line 12)
+    w_hat_B_WB = dq.Ad(r_hat_B_I, dq.DQ(w_I))
+    # DVL linear velocity projection (line 13)
+    p_hat_dot_B_WB = dq.Ad(r_B_D, dq.DQ(v_D_k))
+    # Combine angular + linear into dual twist ξ̂B_W,B (line 15)
+    twist_hat_B_WB = w_hat_B_WB + dq.E_ * p_hat_dot_B_WB
+    # Integrate pose with world-frame twist (line 16)
+    x_W_B_k = x_prev * dq.exp((dt / 2) * twist_hat_B_WB)
+    return x_W_B_k
+
 
 
 def generate_dualQ(
