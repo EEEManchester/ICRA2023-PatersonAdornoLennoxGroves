@@ -21,38 +21,35 @@ import numpy as np
 import dqrobotics as dq
 
 
-def process_single_gravity_measurement(g_I_k, k, g_avg_previous, r_B_I_estimated, dt):
+def process_single_gravity_measurement(g_I_k, k, g_avg_kminus1, r_hat_B_I_kminus1, dt):
     """
     Process one gravity vector measurement to update IMU-to-body rotation estimate.
     Corresponds to Algorithm 1 lines 7–10 in the paper:
-      7. Compute running average of gravity: ḡI[n] = (1/n) gI[n] + ((n−1)/n) ḡI[n−1]
-      8. Estimate gravity in body frame: ĝB[n] = Ad(r̂B_I[n−1]) ḡI[n]
-      9. Compute correction angular velocity: ω̂B_B,I[n] = λ (ĝB[n] × gB)
-     10. Update rotation: r̂B_I[n] = exp((T/2) ω̂B_B,I[n]) r̂B_I[n−1]
     """
-    # Normalize current IMU gravity vector measurement (Algorithm 1 line 7)
+    gain = 10
+    g_B=dq.k_
+    # Normalize current IMU gravity vector measurement
     g_I_DQ = dq.DQ(g_I_k)
     g_I_normalised = dq.normalize(g_I_DQ)
 
-    # Update zero-frequency (running average) gravity in IMU frame (line 7)
-    g_avg = dq.DQ(dq.vec3(g_I_normalised) / (k + 1)) \
-            + (k / (k + 1)) * g_avg_previous
+    # Update zero-frequency (running average) gravity vector in IMU frame (line 7)
+    g_avg_I_k = dq.DQ(dq.vec3(g_I_normalised) / (k + 1)) \
+            + (k / (k + 1)) * g_avg_kminus1
 
     # Estimate gravity in body frame using current rotation (line 8)
-    g_B_estimated = dq.Ad(r_B_I_estimated, g_avg)
+    g_hat_B_k = dq.Ad(r_hat_B_I_kminus1, g_avg_I_k)
 
     # Compute correction angular velocity with gain λ=10 (line 9)
-    gain = 10
-    w_B_B_I = gain * dq.cross(g_B_estimated, dq.k_)
+    w_hat_B_BI_k = gain * dq.cross(g_hat_B_k, g_B)
 
     # Update IMU-to-body rotation via exponential map (line 10)
-    r_B_I_estimated = dq.exp(0.5 * dt * w_B_B_I) * r_B_I_estimated
+    r_hat_B_I_k = dq.exp(0.5 * dt * w_hat_B_BI_k) * r_hat_B_I_kminus1
 
     ###### Compute and return gravity error norm - put this in if required ####
     # g_error = g_B_estimated - dq.k_
     # norm_g_error = dq.vec8(dq.norm(g_error))[0]
 
-    return r_B_I_estimated, g_avg
+    return r_hat_B_I_k, g_avg_I_k
 
 
 def generate_dualQ(
@@ -79,7 +76,7 @@ def generate_dualQ(
 
     # Initialize pose and twist
     x_W_B_kminus1 = initial_pos  # x̂W_B[0]
-    dt = 1 / freq               # Sampling time T (line 1)
+    T = 1 / freq               # Sampling time T (line 1)
     # twist_W_Bkminus1_wrt_W = 0  # ξ̂W_W,B[0]
 
     end = len(dvl_vel_data[0])
@@ -89,7 +86,7 @@ def generate_dualQ(
     g_avg = dq.DQ([0])          # ḡI[0]
     for k in range(0, calibration_time + 1):
         g_I_k = [imu_lin_acc_data[0, k], imu_lin_acc_data[1, k], imu_lin_acc_data[2, k]]
-        r_hat_B_I, g_avg = process_single_gravity_measurement(g_I_k, k, g_avg, r_B_I_estimated, dt)
+        r_hat_B_I, g_avg = process_single_gravity_measurement(g_I_k, k, g_avg, r_B_I_estimated, T)
 
     # Prepare outputs for dead reckoning path
     DR_x_and_y = np.zeros((2, (end - calibration_time + 1)))
@@ -106,7 +103,7 @@ def generate_dualQ(
         w_I = [imu_ang_vel_data[0, k], imu_ang_vel_data[1, k], imu_ang_vel_data[2, k]]
         v_D_k = [dvl_vel_data[0, k], dvl_vel_data[1, k], dvl_vel_data[2, k]]
 
-        r_hat_B_I, g_avg = process_single_gravity_measurement(g_I_k, k, g_avg, r_hat_B_I, dt)
+        r_hat_B_I, g_avg = process_single_gravity_measurement(g_I_k, k, g_avg, r_hat_B_I, T)
 
         # Body-frame angular velocity ω̂W,B[n] (line 12)
         w_hat_B_WB = dq.Ad(r_hat_B_I,dq.DQ(w_I))
@@ -118,7 +115,7 @@ def generate_dualQ(
         twist_hat_B_WB = w_hat_B_WB + dq.E_ * p_hat_dot_B_WB
 
         # Integrate pose with world-frame twist (line 16)
-        x_W_B_k = x_W_B_kminus1 * dq.exp((dt / 2) * twist_hat_B_WB)
+        x_W_B_k = x_W_B_kminus1 * dq.exp((T / 2) * twist_hat_B_WB)
         x_W_B_kminus1 = x_W_B_k
 
         # Record dead-reckoned position
