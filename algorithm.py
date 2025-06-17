@@ -9,7 +9,6 @@ Conventions:
  - Variables x_sup_sub represent x^{sup}_{sub} in LaTeX
  - Variables p_sup_sub1sub2 represent p^{sup}_{sub1,sub2} in LaTeX
 
-
 Current assumptions for this simulation:
   1) The IMU, DVL, and body frames are aligned and located at the CoM.
   2) The world frame is defined as the body frame when k=0.
@@ -21,7 +20,23 @@ import numpy as np
 import dqrobotics as dq
 
 
-def process_single_gravity_measurement(g_I_k, k, g_avg_kminus1, r_hat_B_I_kminus1, dt):
+def dead_reckoning_step(r_hat_B_I, r_B_D, w_I, v_D_k, x_prev, dt):
+    """
+    
+    computes body-frame angular velocity, DVL projection, twist, and integrates pose.
+    """
+    # Body-frame angular velocity ω̂W,B (line 12)
+    w_hat_B_WB = dq.Ad(r_hat_B_I, dq.DQ(w_I))
+    # DVL linear velocity projection (line 13)
+    p_hat_dot_B_WB = dq.Ad(r_B_D, dq.DQ(v_D_k))
+    # Combine angular + linear into dual twist ξ̂B_W,B (line 15)
+    twist_hat_B_WB = w_hat_B_WB + dq.E_ * p_hat_dot_B_WB
+    # Integrate pose with world-frame twist (line 16)
+    x_W_B_k = x_prev * dq.exp((dt / 2) * twist_hat_B_WB)
+    return x_W_B_k
+
+
+def rotation_estimate_step(g_I_k, k, g_avg_kminus1, r_hat_B_I_kminus1, dt):
     """
     Process one gravity vector measurement to update IMU-to-body rotation estimate.
     Corresponds to Algorithm 1 lines 7–10 in the paper:
@@ -55,7 +70,7 @@ def process_single_gravity_measurement(g_I_k, k, g_avg_kminus1, r_hat_B_I_kminus
 def generate_dualQ(
     data,
     calibration_time,
-    r_B_I_estimated=dq.DQ([1]),
+    r_hat_B_I_kminus1=dq.DQ([1]),
     freq=50,
     initial_pos=dq.DQ([1, 0, 0, 0, 0, 0, 0, 0]),
 ):
@@ -86,8 +101,8 @@ def generate_dualQ(
     g_avg = dq.DQ([0])          # ḡI[0]
     for k in range(0, calibration_time + 1):
         g_I_k = [imu_lin_acc_data[0, k], imu_lin_acc_data[1, k], imu_lin_acc_data[2, k]]
-        r_hat_B_I, g_avg = process_single_gravity_measurement(g_I_k, k, g_avg, r_B_I_estimated, T)
-
+        r_hat_B_I_k, g_avg = rotation_estimate_step(g_I_k, k, g_avg, r_hat_B_I_kminus1, T)
+        r_hat_B_I_kminus1 = r_hat_B_I_k
     # Prepare outputs for dead reckoning path
     DR_x_and_y = np.zeros((2, (end - calibration_time + 1)))
     start_pt = dq.vec3(initial_pos.translation())
@@ -96,26 +111,18 @@ def generate_dualQ(
     yaw[0] = x_W_B_kminus1.rotation_angle()
     index_for_DR = 1
 
-    # Dead reckoning loop (Algorithm 1 lines 12–16)
+    # Dead reckoning loop (Algorithm 1)
     for k in range(calibration_time + 1, end):
         # pull single occurences of data from stored array
         g_I_k = [imu_lin_acc_data[0, k], imu_lin_acc_data[1, k], imu_lin_acc_data[2, k]]
         w_I = [imu_ang_vel_data[0, k], imu_ang_vel_data[1, k], imu_ang_vel_data[2, k]]
         v_D_k = [dvl_vel_data[0, k], dvl_vel_data[1, k], dvl_vel_data[2, k]]
 
-        r_hat_B_I, g_avg = process_single_gravity_measurement(g_I_k, k, g_avg, r_hat_B_I, T)
+        r_hat_B_I_k, g_avg = rotation_estimate_step(g_I_k, k, g_avg, r_hat_B_I_kminus1, T)
+        
+        x_W_B_k = dead_reckoning_step(r_hat_B_I_k, r_B_D, w_I, v_D_k, x_W_B_kminus1, T)
 
-        # Body-frame angular velocity ω̂W,B[n] (line 12)
-        w_hat_B_WB = dq.Ad(r_hat_B_I,dq.DQ(w_I))
-
-        # DVL linear velocity projection (line 13)
-        p_hat_dot_B_WB = dq.Ad(r_B_D, dq.DQ(v_D_k))
-
-        # Combine angular + linear into dual twist ξ̂B_W,B[n] (line 15)
-        twist_hat_B_WB = w_hat_B_WB + dq.E_ * p_hat_dot_B_WB
-
-        # Integrate pose with world-frame twist (line 16)
-        x_W_B_k = x_W_B_kminus1 * dq.exp((T / 2) * twist_hat_B_WB)
+        r_hat_B_I_kminus1 = r_hat_B_I_k
         x_W_B_kminus1 = x_W_B_k
 
         # Record dead-reckoned position
