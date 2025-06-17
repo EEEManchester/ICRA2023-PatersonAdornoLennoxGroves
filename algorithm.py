@@ -76,7 +76,7 @@ def process_single_gravity_measurement(g_I_k, k, g_avg_previous, r_B_I_estimated
 def generate_dualQ(
     data,
     calibration_time,
-    r_W_I_estimated=dq.DQ([1]),
+    r_B_I_estimated=dq.DQ([1]),
     freq=50,
     initial_pos=dq.DQ([1, 0, 0, 0, 0, 0, 0, 0]),
 ):
@@ -98,17 +98,17 @@ def generate_dualQ(
     # Initialize pose and twist
     x_W_Bkminus1 = initial_pos  # x̂W_B[0]
     dt = 1 / freq               # Sampling time T (line 1)
-    twist_W_Bkminus1_wrt_W = 0  # ξ̂W_W,B[0]
+    # twist_W_Bkminus1_wrt_W = 0  # ξ̂W_W,B[0]
 
     end = len(dvl_vel_data[0])
-    g_error_vec = np.zeros((3, end + 1))
+    # g_error_vec = np.zeros((3, end + 1))
 
     # Calibration: estimate IMU-to-body misalignment (Algorithm 1 lines 7–10)
     g_avg = dq.DQ([0])          # ḡI[0]
     for k in range(0, calibration_time + 1):
         g_I_k = [imu_lin_acc_data[0, k], imu_lin_acc_data[1, k], imu_lin_acc_data[2, k]]
-        r_W_I_estimated, norm_g_error, g_avg = \
-            process_single_gravity_measurement(g_I_k, k, g_avg, r_W_I_estimated, dt)
+        r_B_I_estimated, norm_g_error, g_avg = \
+            process_single_gravity_measurement(g_I_k, k, g_avg, r_B_I_estimated, dt)
 
     # Prepare outputs for dead reckoning path
     DR_x_and_y = np.zeros((2, (end - calibration_time + 1)))
@@ -122,11 +122,11 @@ def generate_dualQ(
     for k in range(calibration_time + 1, end):
         # Update rotation estimate from gravity (repeats lines 7–10)
         g_I_k = [imu_lin_acc_data[0, k], imu_lin_acc_data[1, k], imu_lin_acc_data[2, k]]
-        r_W_I_estimated, norm_g_error, g_avg = \
-            process_single_gravity_measurement(g_I_k, k, g_avg, r_W_I_estimated, dt)
+        r_B_I_estimated, norm_g_error, g_avg = \
+            process_single_gravity_measurement(g_I_k, k, g_avg, r_B_I_estimated, dt)
 
         # Body-frame angular velocity ω̂W,B[n] (line 12)
-        w_Bkminus1_Bk_wrt_Bkminus1 = dq.Ad(r_W_I_estimated,
+        w_Bkminus1_Bk_wrt_Bkminus1 = dq.Ad(r_B_I_estimated,
             dq.DQ([imu_ang_vel_data[0, k], imu_ang_vel_data[1, k], imu_ang_vel_data[2, k]]))
 
         # DVL linear velocity projection (line 13)
