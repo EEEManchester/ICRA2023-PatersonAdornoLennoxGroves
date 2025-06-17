@@ -66,11 +66,11 @@ def process_single_gravity_measurement(g_I_k, k, g_avg_previous, r_B_I_estimated
     # Update IMU-to-body rotation via exponential map (line 10)
     r_B_I_estimated = dq.exp(0.5 * dt * w_B_B_I) * r_B_I_estimated
 
-    # Compute and return gravity error norm
-    g_error = g_B_estimated - dq.k_
-    norm_g_error = dq.vec8(dq.norm(g_error))[0]
+    ###### Compute and return gravity error norm - put this in if required ####
+    # g_error = g_B_estimated - dq.k_
+    # norm_g_error = dq.vec8(dq.norm(g_error))[0]
 
-    return r_B_I_estimated, norm_g_error, g_avg
+    return r_B_I_estimated, g_avg
 
 
 def generate_dualQ(
@@ -107,8 +107,7 @@ def generate_dualQ(
     g_avg = dq.DQ([0])          # ḡI[0]
     for k in range(0, calibration_time + 1):
         g_I_k = [imu_lin_acc_data[0, k], imu_lin_acc_data[1, k], imu_lin_acc_data[2, k]]
-        r_B_I_estimated, norm_g_error, g_avg = \
-            process_single_gravity_measurement(g_I_k, k, g_avg, r_B_I_estimated, dt)
+        r_B_I_estimated, g_avg = process_single_gravity_measurement(g_I_k, k, g_avg, r_B_I_estimated, dt)
 
     # Prepare outputs for dead reckoning path
     DR_x_and_y = np.zeros((2, (end - calibration_time + 1)))
@@ -120,21 +119,21 @@ def generate_dualQ(
 
     # Dead reckoning loop (Algorithm 1 lines 12–16)
     for k in range(calibration_time + 1, end):
-        # Update rotation estimate from gravity (repeats lines 7–10)
+        # pull single occurences of data from stored array
         g_I_k = [imu_lin_acc_data[0, k], imu_lin_acc_data[1, k], imu_lin_acc_data[2, k]]
-        r_B_I_estimated, norm_g_error, g_avg = \
-            process_single_gravity_measurement(g_I_k, k, g_avg, r_B_I_estimated, dt)
+        omega_I_k = [imu_ang_vel_data[0, k], imu_ang_vel_data[1, k], imu_ang_vel_data[2, k]]
+        v_D_k = [dvl_vel_data[0, k], dvl_vel_data[1, k], dvl_vel_data[2, k]]
+
+        r_B_I_estimated, g_avg = process_single_gravity_measurement(g_I_k, k, g_avg, r_B_I_estimated, dt)
 
         # Body-frame angular velocity ω̂W,B[n] (line 12)
-        w_Bkminus1_Bk_wrt_Bkminus1 = dq.Ad(r_B_I_estimated,
-            dq.DQ([imu_ang_vel_data[0, k], imu_ang_vel_data[1, k], imu_ang_vel_data[2, k]]))
+        w_Bkminus1_Bk_wrt_Bkminus1 = dq.Ad(r_B_I_estimated,dq.DQ(omega_I_k))
 
         # DVL linear velocity projection (line 13)
-        v_B = dq.Ad(r_B_D,
-            dq.DQ([dvl_vel_data[0, k], dvl_vel_data[1, k], dvl_vel_data[2, k]]))
+        p_hat_dot_B_WB = dq.Ad(r_B_D, dq.DQ(v_D_k))
 
         # Combine angular + linear into dual twist ξ̂B_W,B[n] (line 15)
-        twist = w_Bkminus1_Bk_wrt_Bkminus1 + dq.E_ * v_B
+        twist = w_Bkminus1_Bk_wrt_Bkminus1 + dq.E_ * p_hat_dot_B_WB
 
         # Integrate pose with world-frame twist (line 16)
         x_W_Bk = x_W_Bkminus1 * dq.exp((dt / 2) * twist)
