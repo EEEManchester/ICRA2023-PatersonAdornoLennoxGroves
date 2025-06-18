@@ -97,12 +97,8 @@ def generate_dualQ(
     end = len(dvl_vel_data[0])
     # g_error_vec = np.zeros((3, end + 1))
 
-    # Calibration: estimate IMU-to-body misalignment (Algorithm 1 lines 7–10)
-    g_avg = dq.DQ([0])          # ḡI[0]
-    for k in range(0, calibration_time + 1):
-        g_I_k = [imu_lin_acc_data[0, k], imu_lin_acc_data[1, k], imu_lin_acc_data[2, k]]
-        r_hat_B_I_k, g_avg = rotation_estimate_step(g_I_k, k, g_avg, r_hat_B_I_kminus1, T)
-        r_hat_B_I_kminus1 = r_hat_B_I_k
+
+
     # Prepare outputs for dead reckoning path
     DR_x_and_y = np.zeros((2, (end - calibration_time + 1)))
     start_pt = dq.vec3(initial_pos.translation())
@@ -110,6 +106,15 @@ def generate_dualQ(
     yaw = np.zeros(end - calibration_time + 1)
     yaw[0] = x_W_B_kminus1.rotation_angle()
     index_for_DR = 1
+
+
+    # Calibration: estimate IMU-to-body misalignment (Algorithm 1 lines 7–10)
+    g_avg = dq.DQ([0])          # ḡI[0]
+    for k in range(0, calibration_time + 1):
+        g_I_k = [imu_lin_acc_data[0, k], imu_lin_acc_data[1, k], imu_lin_acc_data[2, k]]
+        r_hat_B_I_k, g_avg = rotation_estimate_step(g_I_k, k, g_avg, r_hat_B_I_kminus1, T)
+        r_hat_B_I_kminus1 = r_hat_B_I_k
+
 
     # Dead reckoning loop (Algorithm 1)
     for k in range(calibration_time + 1, end):
