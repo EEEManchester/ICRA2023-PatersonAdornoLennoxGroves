@@ -19,7 +19,7 @@ with the imaginary unit k_ !
 import numpy as np
 import dqrobotics as dq
 
-def rotation_estimate_step(g_I_k, k, g_avg_kminus1, r_hat_B_I_kminus1, dt):
+def rotation_estimate_step(g_I_k, k, g_avg_I_kminus1, r_hat_B_I_kminus1, dt):
     """
     Process one gravity vector measurement to update IMU-to-body rotation estimate.
     Corresponds to Algorithm 1 lines 7–10 in the paper:
@@ -32,7 +32,7 @@ def rotation_estimate_step(g_I_k, k, g_avg_kminus1, r_hat_B_I_kminus1, dt):
 
     # Update zero-frequency (running average) gravity vector in IMU frame (line 7)
     g_avg_I_k = dq.DQ(dq.vec3(g_I_normalised) / (k + 1)) \
-            + (k / (k + 1)) * g_avg_kminus1
+            + (k / (k + 1)) * g_avg_I_kminus1
 
     # Estimate gravity in body frame using current rotation (line 8)
     g_hat_B_k = dq.Ad(r_hat_B_I_kminus1, g_avg_I_k)
@@ -88,15 +88,14 @@ def generate_dualQ(
 
     # Known DVL-to-body rotation (r_B_D = 180° about x-axis)
     r_B_D = dq.i_
-
-    # Initialize pose and twist
+    # Initialize pose
     x_W_B_kminus1 = initial_pos  # x̂W_B[0]
-    T = 1 / freq               # Sampling time T (line 1)
-    # twist_W_Bkminus1_wrt_W = 0  # ξ̂W_W,B[0]
-
+    # Initialize imu gravity vector rolling average
+    g_avg_I = dq.DQ([0])
+    # Sampling time T (line 1)
+    T = 1 / freq               
+    # sample length
     end = len(dvl_vel_data[0])
-    # g_error_vec = np.zeros((3, end + 1))
-
 
 
     # Prepare outputs for dead reckoning path
@@ -107,33 +106,25 @@ def generate_dualQ(
     yaw[0] = x_W_B_kminus1.rotation_angle()
     index_for_DR = 1
 
-
-    # Calibration: estimate IMU-to-body misalignment (Algorithm 1 lines 7–10)
-    g_avg = dq.DQ([0])          # ḡI[0]
-    for k in range(0, calibration_time + 1):
-        g_I_k = [imu_lin_acc_data[0, k], imu_lin_acc_data[1, k], imu_lin_acc_data[2, k]]
-        r_hat_B_I_k, g_avg = rotation_estimate_step(g_I_k, k, g_avg, r_hat_B_I_kminus1, T)
-        r_hat_B_I_kminus1 = r_hat_B_I_k
-
-
     # Dead reckoning loop (Algorithm 1)
-    for k in range(calibration_time + 1, end):
+    for k in range(0, end):
         # pull single occurences of data from stored array
         g_I_k = [imu_lin_acc_data[0, k], imu_lin_acc_data[1, k], imu_lin_acc_data[2, k]]
         w_I = [imu_ang_vel_data[0, k], imu_ang_vel_data[1, k], imu_ang_vel_data[2, k]]
         v_D_k = [dvl_vel_data[0, k], dvl_vel_data[1, k], dvl_vel_data[2, k]]
 
-        r_hat_B_I_k, g_avg = rotation_estimate_step(g_I_k, k, g_avg, r_hat_B_I_kminus1, T)
-        
-        x_W_B_k = dead_reckoning_step(r_hat_B_I_k, r_B_D, w_I, v_D_k, x_W_B_kminus1, T)
+        r_hat_B_I_k, g_avg_I = rotation_estimate_step(g_I_k, k, g_avg_I, r_hat_B_I_kminus1, T)
 
-        r_hat_B_I_kminus1 = r_hat_B_I_k
-        x_W_B_kminus1 = x_W_B_k
+        if k > calibration_time:
+            x_W_B_k = dead_reckoning_step(r_hat_B_I_k, r_B_D, w_I, v_D_k, x_W_B_kminus1, T)
 
-        # Record dead-reckoned position
-        pt = dq.vec3(x_W_B_k.translation())
-        DR_x_and_y[:, index_for_DR] = pt[:2]
-        yaw[index_for_DR] = x_W_B_k.rotation_angle()
-        index_for_DR += 1
+            r_hat_B_I_kminus1 = r_hat_B_I_k
+            x_W_B_kminus1 = x_W_B_k
+
+            # Record dead-reckoned position
+            pt = dq.vec3(x_W_B_k.translation())
+            DR_x_and_y[:, index_for_DR] = pt[:2]
+            yaw[index_for_DR] = x_W_B_k.rotation_angle()
+            index_for_DR += 1
 
     return DR_x_and_y
