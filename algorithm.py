@@ -19,54 +19,6 @@ with the imaginary unit k_ !
 import numpy as np
 import dqrobotics as dq
 
-def rotation_estimate_step(g_I_k, k, g_avg_I_kminus1, r_hat_B_I_kminus1, dt):
-    """
-    Process one gravity vector measurement to update IMU-to-body rotation estimate.
-    Corresponds to Algorithm 1 lines 7–10 in the paper:
-    """
-    gain = 10
-    g_B=dq.k_
-    # Normalize current IMU gravity vector measurement
-    g_I_DQ = dq.DQ(g_I_k)
-    g_I_normalised = dq.normalize(g_I_DQ)
-
-    # Update zero-frequency (running average) gravity vector in IMU frame (line 7)
-    g_avg_I_k = dq.DQ(dq.vec3(g_I_normalised) / (k + 1)) \
-            + (k / (k + 1)) * g_avg_I_kminus1
-
-    # Estimate gravity in body frame using current rotation (line 8)
-    g_hat_B_k = dq.Ad(r_hat_B_I_kminus1, g_avg_I_k)
-
-    # Compute correction angular velocity with gain λ=10 (line 9)
-    w_hat_B_BI_k = gain * dq.cross(g_hat_B_k, g_B)
-
-    # Update IMU-to-body rotation via exponential map (line 10)
-    r_hat_B_I_k = dq.exp(0.5 * dt * w_hat_B_BI_k) * r_hat_B_I_kminus1
-
-    ###### Compute and return gravity error norm - put this in if required ####
-    # g_error = g_B_estimated - dq.k_
-    # norm_g_error = dq.vec8(dq.norm(g_error))[0]
-
-    return r_hat_B_I_k, g_avg_I_k
-
-
-def dead_reckoning_step(r_hat_B_I, r_B_D, w_I, v_D_k, x_prev, dt):
-    """
-    
-    computes body-frame angular velocity, DVL projection, twist, and integrates pose.
-    """
-    # Body-frame angular velocity ω̂W,B (line 12)
-    w_hat_B_WB = dq.Ad(r_hat_B_I, dq.DQ(w_I))
-    # DVL linear velocity projection (line 13)
-    p_hat_dot_B_WB = dq.Ad(r_B_D, dq.DQ(v_D_k))
-    # Combine angular + linear into dual twist ξ̂B_W,B (line 15)
-    twist_hat_B_WB = w_hat_B_WB + dq.E_ * p_hat_dot_B_WB
-    # Integrate pose with world-frame twist (line 16)
-    x_W_B_k = x_prev * dq.exp((dt / 2) * twist_hat_B_WB)
-    return x_W_B_k
-
-
-
 def generate_dualQ(
     data,
     calibration_time,
@@ -76,11 +28,11 @@ def generate_dualQ(
 ):
     """
     Main routine to perform dead reckoning using dual quaternions.
-    Follows Algorithm 1 structure, mapping code blocks to steps:
-      • Lines 1–2: Initialization (sampling time T, initial gravity and poses)
-      • Lines 3–6: Sensor data acquisition in loop
-      • Lines 7–10: IMU alignment/calibration phase
-      • Lines 12–16: IMU+DVL fusion and pose update
+    Follows Algorithm 1 structure, mapping code blocks to steps:
+      • Lines 1–2: Initialization (sampling time T, initial gravity and poses)
+      • Lines 3–6: Sensor data acquisition in loop
+      • Lines 7–10: IMU alignment/calibration phase
+      • Lines 12–16: IMU+DVL fusion and pose update
     """
     dvl_vel_data = data.dvl_velocities  # νD readings
     imu_ang_vel_data = data.imu_angular_velocities  # ωI readings
@@ -92,11 +44,10 @@ def generate_dualQ(
     x_W_B_kminus1 = initial_pos  # x̂W_B[0]
     # Initialize imu gravity vector rolling average
     g_avg_I = dq.DQ([0])
-    # Sampling time T (line 1)
+    # Sampling time T (line 1)
     T = 1 / freq               
     # sample length
     end = len(dvl_vel_data[0])
-
 
     # Prepare outputs for dead reckoning path
     DR_x_and_y = np.zeros((2, (end - calibration_time + 1)))
@@ -106,19 +57,49 @@ def generate_dualQ(
     yaw[0] = x_W_B_kminus1.rotation_angle()
     index_for_DR = 1
 
-    # Dead reckoning loop (Algorithm 1)
+    # Dead reckoning loop (Algorithm 1)
     for k in range(0, end):
-        # pull single occurences of data from stored array
-        g_I_k = [imu_lin_acc_data[0, k], imu_lin_acc_data[1, k], imu_lin_acc_data[2, k]]
-        w_I = [imu_ang_vel_data[0, k], imu_ang_vel_data[1, k], imu_ang_vel_data[2, k]]
-        v_D_k = [dvl_vel_data[0, k], dvl_vel_data[1, k], dvl_vel_data[2, k]]
+        # pull single occurrences of data from stored array
+        g_I_k = [imu_lin_acc_data[0, k],
+                 imu_lin_acc_data[1, k],
+                 imu_lin_acc_data[2, k]]
+        w_I = [imu_ang_vel_data[0, k],
+               imu_ang_vel_data[1, k],
+               imu_ang_vel_data[2, k]]
+        v_D_k = [dvl_vel_data[0, k],
+                 dvl_vel_data[1, k],
+                 dvl_vel_data[2, k]]
 
-        r_hat_B_I_k, g_avg_I = rotation_estimate_step(g_I_k, k, g_avg_I, r_hat_B_I_kminus1, T)
+        ######## IMU alignment/calibration phase (Algorithm 1 lines 7–10): ######
+        gain = 10
+        g_B = dq.k_
+        # Normalize current IMU gravity vector measurement
+        g_I_DQ = dq.DQ(g_I_k)
+        g_I_normalised = dq.normalize(g_I_DQ)
+        # Update zero-frequency (running average) gravity vector in IMU frame (line 7)
+        g_avg_I = dq.DQ(dq.vec3(g_I_normalised) / (k + 1)) \
+                  + (k / (k + 1)) * g_avg_I
+        # Estimate gravity in body frame using current rotation (line 8)
+        g_hat_B_k = dq.Ad(r_hat_B_I_kminus1, g_avg_I)
+        # Compute correction angular velocity with gain λ=10 (line 9)
+        w_hat_B_BI_k = gain * dq.cross(g_hat_B_k, g_B)
+        # Update IMU-to-body rotation via exponential map (line 10)
+        r_hat_B_I_k = dq.exp(0.5 * T * w_hat_B_BI_k) * r_hat_B_I_kminus1
+        # move to next step
+        r_hat_B_I_kminus1 = r_hat_B_I_k
+
 
         if k > calibration_time:
-            x_W_B_k = dead_reckoning_step(r_hat_B_I_k, r_B_D, w_I, v_D_k, x_W_B_kminus1, T)
-
-            r_hat_B_I_kminus1 = r_hat_B_I_k
+            ######## IMU+DVL fusion and pose update (Algorithm 1 lines 12–16):#######
+            # Body-frame angular velocity ω̂W,B (line 12)
+            w_hat_B_WB = dq.Ad(r_hat_B_I_k, dq.DQ(w_I))
+            # DVL linear velocity projection (line 13)
+            p_hat_dot_B_WB = dq.Ad(r_B_D, dq.DQ(v_D_k))
+            # Combine angular + linear into dual twist ξ̂B_W,B (line 15)
+            twist_hat_B_WB = w_hat_B_WB + dq.E_ * p_hat_dot_B_WB
+            # Integrate pose with world-frame twist (line 16)
+            x_W_B_k = x_W_B_kminus1 * dq.exp((T / 2) * twist_hat_B_WB)
+            # move to next step
             x_W_B_kminus1 = x_W_B_k
 
             # Record dead-reckoned position
