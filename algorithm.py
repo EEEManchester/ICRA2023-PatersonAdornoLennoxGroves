@@ -8,12 +8,7 @@ from dead_step_class import DeadStep
 # Create an instance of the class
 ds = DeadStep()
 
-def generate_dualQ(
-    data,
-    calibration_time,
-    # r_hat_B_I_kminus1=dq.DQ([1]),
-    initial_pos=dq.DQ([1, 0, 0, 0, 0, 0, 0, 0]),
-):
+def generate_dualQ(data):
     dvl_vel_data = data.dvl_velocities  # νD readings
     imu_ang_vel_data = data.imu_angular_velocities  # ωI readings
     imu_lin_acc_data = data.imu_linear_accelerations  # gI static component
@@ -23,16 +18,16 @@ def generate_dualQ(
       np.cos(np.pi / 4) + dq.i_ * np.sin(np.pi / 4)
     )
     # Initial pose
-    x_W_B_kminus1 = initial_pos  # x̂W_B[0]
+    x_W_B_kminus1 = data.initial_pos  # x̂W_B[0]
       
     # sample length
     end = len(dvl_vel_data[0])
 
     # Prepare outputs for dead reckoning path
-    DR_x_and_y = np.zeros((2, (end - calibration_time + 1)))
-    start_pt = dq.vec3(initial_pos.translation())
+    DR_x_and_y = np.zeros((2, (end - data.calibration_time + 1)))
+    start_pt = dq.vec3(data.initial_pos.translation())
     DR_x_and_y[:, 0] = start_pt[:2]
-    yaw = np.zeros(end - calibration_time + 1)
+    yaw = np.zeros(end - data.calibration_time + 1)
     yaw[0] = x_W_B_kminus1.rotation_angle()
     index_for_DR = 1
 
@@ -53,7 +48,7 @@ def generate_dualQ(
         r_hat_B_I_k = ds.rotation_estimator(k, g_I_k, r_hat_B_I_kminus1)
         r_hat_B_I_kminus1 = r_hat_B_I_k
 
-        if k > calibration_time:
+        if k > data.calibration_time:
             ######## IMU+DVL fusion and pose update (Algorithm 1 lines 12–16):#######
             x_W_B_k = ds.velocity_pose_update(r_hat_B_I_k, w_I, v_D_k, x_W_B_kminus1)
             x_W_B_kminus1 = x_W_B_k

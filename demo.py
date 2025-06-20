@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-import argparse
-import sys
-
 import algorithm as dr
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
@@ -21,7 +18,6 @@ def plot_traj(
     seconds_to_plot=120,
 ):
     fig, ax = plt.subplots(figsize=(13, 7))
-
     # Control how much of the experiment is plotted
     (seconds_to_plot_index,) = np.where(time_stamps == seconds_to_plot)
     first_point_ground_truth = calibration_time
@@ -132,41 +128,12 @@ def plot_traj(
 
 def main(experiment_number):
     data = LoadExperimentData(experiment_number)
-    ground_truth = data.vicon_positions
-
-    vicon_orientation_quat = data.vicon_orientation
-
-    time_stamps = data.time_stamps
-    (seconds_to_calibrate,) = np.where(time_stamps == 4)
-    calibration_time = seconds_to_calibrate[0]
-
-    vicon_initial_pos = (
-        ground_truth[0, calibration_time] * dq.i_
-        + ground_truth[1, calibration_time] * dq.j_
-        + ground_truth[2, calibration_time] * dq.k_
-    )
-
-    initial_orientation = (
-        vicon_orientation_quat[0, calibration_time]
-        + vicon_orientation_quat[1, calibration_time] * dq.i_
-        + vicon_orientation_quat[2, calibration_time] * dq.j_
-        + vicon_orientation_quat[3, calibration_time] * dq.k_
-    )
-
-    initial_pos = (1 + (dq.E_ * vicon_initial_pos) * 0.5) * dq.normalize(
-        initial_orientation
-    )
-
-    # # Initial guess of IMU rotation WRT body based on observations recorded during experiment
-    # r_hat_B_I_kminus1 = (np.cos(-np.pi / 4) + dq.k_ * np.sin(-np.pi / 4)) * (
-    #     np.cos(np.pi / 4) + dq.i_ * np.sin(np.pi / 4)
-    # )
-
+ 
     deadreckon = dr.generate_dualQ(
         data,
-        calibration_time=calibration_time,
+        # calibration_time=data.calibration_time,
         # r_hat_B_I_kminus1=r_hat_B_I_kminus1,
-        initial_pos=initial_pos,
+        # initial_pos=data.initial_pos,
     )
 
     print(deadreckon.shape)
@@ -175,9 +142,9 @@ def main(experiment_number):
 
 
     plot_traj(
-        time_stamps,
-        calibration_time,
-        ground_truth,
+        data.time_stamps,
+        data.calibration_time,
+        data.vicon_positions,
         deadreckon,
         # experiment_name=experiment_name,
     )

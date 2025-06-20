@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
 import pandas as pd
+import dqrobotics as dq
+import numpy as np
+
+
 
 class LoadExperimentData:
     def __init__(self, experiment_number: int):
@@ -26,6 +30,7 @@ class LoadExperimentData:
 
         self.loaded_csvs = self._load_csvs()
         self._extract_data()
+        self._initial_position()
 
     def _load_csvs(self):
         return {
@@ -64,3 +69,24 @@ class LoadExperimentData:
         self.vicon_orientation = self.loaded_csvs["vicon_data"][
             ["rotation.w", "rotation.x", "rotation.y", "rotation.z"]
         ].to_numpy().T
+    
+    def _initial_position(self):
+        (seconds_to_calibrate,) = np.where(self.time_stamps == 4)
+        self.calibration_time = seconds_to_calibrate[0]
+
+        self.vicon_initial_pos = (
+            self.vicon_positions[0, self.calibration_time] * dq.i_
+            + self.vicon_positions[1, self.calibration_time] * dq.j_
+            + self.vicon_positions[2, self.calibration_time] * dq.k_
+        )
+
+        self.initial_orientation = (
+            self.vicon_orientation[0, self.calibration_time]
+            + self.vicon_orientation[1, self.calibration_time] * dq.i_
+            + self.vicon_orientation[2, self.calibration_time] * dq.j_
+            + self.vicon_orientation[3, self.calibration_time] * dq.k_
+        )
+
+        self.initial_pos = (1 + (dq.E_ * self.vicon_initial_pos) * 0.5) * dq.normalize(
+            self.initial_orientation
+        )
