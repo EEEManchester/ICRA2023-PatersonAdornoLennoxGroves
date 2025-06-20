@@ -18,6 +18,13 @@ with the imaginary unit k_ !
 """
 import numpy as np
 import dqrobotics as dq
+from dead_step_class import DeadStep
+
+ds = DeadStep()
+
+
+# Create an instance of the class
+ds = DeadStep()
 
 def generate_dualQ(
     data,
@@ -86,6 +93,8 @@ def generate_dualQ(
         # Update IMU-to-body rotation via exponential map (line 10)
         r_hat_B_I_k = dq.exp(0.5 * T * w_hat_B_BI_k) * r_hat_B_I_kminus1
         # move to next step
+
+        r_hat_B_I_k = ds.rotation_estimator(k, g_I_k, r_hat_B_I_kminus1)
         r_hat_B_I_kminus1 = r_hat_B_I_k
 
 
