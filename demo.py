@@ -202,36 +202,7 @@ def plot_traj(
 
 
 def main(experiment_number):
-    experiments = {
-        1: "03_xdata",  #
-        2: "04_ydata",
-        3: "05_yawdata",
-        4: "06_squaresfixedyawdata",
-        5: "07_DVLxydata",
-        6: "08_fig8fixedyawdata",
-        7: "09_fig8DVLxydata",  #
-        8: "10_fig8DVLxydata",
-        9: "11_rnd_drive_data",
-        10: "12_all",
-    }
-
-    # Load csvs
-    # This assumes all file names follow the pattern <experiment_name>_<sensor_name>.csv
-    # Where sensor name is vicon, imu or dvl
-    csv_dir = "preprocessed/"
-    experiment_name = experiments[experiment_number]
-
-    vicon_data = csv_dir + experiment_name + "_vicon.csv"
-    imu_data = csv_dir + experiment_name + "_imu.csv"
-    dvl_data = csv_dir + experiment_name + "_dvl.csv"
-    data = Data(
-        CSVDataLoader(
-            imu_csv_path=imu_data,
-            vicon_csv_path=vicon_data,
-            dvl_csv_path=dvl_data,
-        )
-    )
-
+    data = LoadExperimentData(experiment_number)
     ground_truth = data.vicon_positions
 
     vicon_orientation_quat = data.vicon_orientation
