@@ -1,5 +1,21 @@
 #!/usr/bin/env python3
 
+"""
+This file is a Python port of an identically named MATLAB version.
+Simple script to evaluate the data fusion algorithm from the IMU and DVL.
+Result of weekly meetings between Jessica Paterson, Keir Groves, and Bruno Adorno.
+
+Conventions:
+ - Variables x_sup_sub represent x^{sup}_{sub} in LaTeX
+ - Variables p_sup_sub1sub2 represent p^{sup}_{sub1,sub2} in LaTeX
+
+Current assumptions for this simulation:
+  1) The IMU, DVL, and body frames are aligned and located at the CoM.
+  2) The world frame is defined as the body frame when k=0.
+
+Warning about notation: We are using the discrete time k. Not to confuse
+with the imaginary unit k_ !
+"""
 
 import numpy as np
 import dqrobotics as dq

@@ -1,27 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-"""
-This file is a Python port of an identically named MATLAB version.
-Simple script to evaluate the data fusion algorithm from the IMU and DVL.
-Result of weekly meetings between Jessica Paterson, Keir Groves, and Bruno Adorno.
 
-Conventions:
- - Variables x_sup_sub represent x^{sup}_{sub} in LaTeX
- - Variables p_sup_sub1sub2 represent p^{sup}_{sub1,sub2} in LaTeX
-
-Current assumptions for this simulation:
-  1) The IMU, DVL, and body frames are aligned and located at the CoM.
-  2) The world frame is defined as the body frame when k=0.
-
-Warning about notation: We are using the discrete time k. Not to confuse
-with the imaginary unit k_ !
-"""
 import numpy as np
 import dqrobotics as dq
 from dead_step_class import DeadStep
-
-ds = DeadStep()
-
 
 # Create an instance of the class
 ds = DeadStep()
@@ -30,7 +12,6 @@ def generate_dualQ(
     data,
     calibration_time,
     r_hat_B_I_kminus1=dq.DQ([1]),
-    freq=50,
     initial_pos=dq.DQ([1, 0, 0, 0, 0, 0, 0, 0]),
 ):
     """
@@ -45,14 +26,10 @@ def generate_dualQ(
     imu_ang_vel_data = data.imu_angular_velocities  # ωI readings
     imu_lin_acc_data = data.imu_linear_accelerations  # gI static component
 
-    # Known DVL-to-body rotation (r_B_D = 180° about x-axis)
-    r_B_D = dq.i_
+
     # Initialize pose
     x_W_B_kminus1 = initial_pos  # x̂W_B[0]
-    # Initialize imu gravity vector rolling average
-    g_avg_I = dq.DQ([0])
-    # Sampling time T (line 1)
-    T = 1 / freq               
+      
     # sample length
     end = len(dvl_vel_data[0])
 
@@ -82,6 +59,7 @@ def generate_dualQ(
         r_hat_B_I_kminus1 = r_hat_B_I_k
 
         if k > calibration_time:
+            ######## IMU+DVL fusion and pose update (Algorithm 1 lines 12–16):#######
             x_W_B_k = ds.velocity_pose_update(r_hat_B_I_k, w_I, v_D_k, x_W_B_kminus1)
             x_W_B_kminus1 = x_W_B_k
 
