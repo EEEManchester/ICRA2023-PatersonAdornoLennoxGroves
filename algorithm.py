@@ -78,37 +78,11 @@ def generate_dualQ(
                  dvl_vel_data[2, k]]
 
         ######## IMU alignment/calibration phase (Algorithm 1 lines 7–10): ######
-        gain = 10
-        g_B = dq.k_
-        # Normalize current IMU gravity vector measurement
-        g_I_DQ = dq.DQ(g_I_k)
-        g_I_normalised = dq.normalize(g_I_DQ)
-        # Update zero-frequency (running average) gravity vector in IMU frame (line 7)
-        g_avg_I = dq.DQ(dq.vec3(g_I_normalised) / (k + 1)) \
-                  + (k / (k + 1)) * g_avg_I
-        # Estimate gravity in body frame using current rotation (line 8)
-        g_hat_B_k = dq.Ad(r_hat_B_I_kminus1, g_avg_I)
-        # Compute correction angular velocity with gain λ=10 (line 9)
-        w_hat_B_BI_k = gain * dq.cross(g_hat_B_k, g_B)
-        # Update IMU-to-body rotation via exponential map (line 10)
-        r_hat_B_I_k = dq.exp(0.5 * T * w_hat_B_BI_k) * r_hat_B_I_kminus1
-        # move to next step
-
         r_hat_B_I_k = ds.rotation_estimator(k, g_I_k, r_hat_B_I_kminus1)
         r_hat_B_I_kminus1 = r_hat_B_I_k
 
-
         if k > calibration_time:
-            ######## IMU+DVL fusion and pose update (Algorithm 1 lines 12–16):#######
-            # Body-frame angular velocity ω̂W,B (line 12)
-            w_hat_B_WB = dq.Ad(r_hat_B_I_k, dq.DQ(w_I))
-            # DVL linear velocity projection (line 13)
-            p_hat_dot_B_WB = dq.Ad(r_B_D, dq.DQ(v_D_k))
-            # Combine angular + linear into dual twist ξ̂B_W,B (line 15)
-            twist_hat_B_WB = w_hat_B_WB + dq.E_ * p_hat_dot_B_WB
-            # Integrate pose with world-frame twist (line 16)
-            x_W_B_k = x_W_B_kminus1 * dq.exp((T / 2) * twist_hat_B_WB)
-            # move to next step
+            x_W_B_k = ds.velocity_pose_update(r_hat_B_I_k, w_I, v_D_k, x_W_B_kminus1)
             x_W_B_kminus1 = x_W_B_k
 
             # Record dead-reckoned position
