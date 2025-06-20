@@ -4,83 +4,12 @@ import argparse
 import sys
 
 import algorithm as dr
-import pandas as pd
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
 import dqrobotics as dq
 from data_loader import LoadExperimentData
-
-
-
-class CSVDataLoader:
-    def __init__(
-        self,
-        vicon_csv_path: str,
-        imu_csv_path: str,
-        dvl_csv_path: str,
-    ):
-        self.csvs_to_load = {
-            "vicon_data": (vicon_csv_path),
-            "imu_data": (imu_csv_path),
-            "dvl_data": (dvl_csv_path),
-        }
-
-    def get_csvs(self):
-        return {
-            csv: pd.read_csv(file_name)
-            for (csv, file_name) in self.csvs_to_load.items()
-        }
-
-
-class Data:
-    def __init__(self, csv_loader) -> None:
-        self.loaded_csvs = csv_loader.get_csvs()
-        self.time_stamps = self.loaded_csvs["vicon_data"]["time"].to_numpy()
-        self.dvl_velocities = (
-            self.loaded_csvs["dvl_data"][
-                ["velocity.x", "velocity.y", "velocity.z"]
-            ]
-            .to_numpy()
-            .T
-        )
-        self.imu_angular_velocities = (
-            self.loaded_csvs["imu_data"][
-                [
-                    "angular_velocities.x",
-                    "angular_velocities.y",
-                    "angular_velocities.z",
-                ]
-            ]
-            .to_numpy()
-            .T
-        )
-        self.imu_linear_accelerations = (
-            self.loaded_csvs["imu_data"][
-                [
-                    "linear_acceleration.x",
-                    "linear_acceleration.y",
-                    "linear_acceleration.z",
-                ]
-            ]
-            .to_numpy()
-            .T
-        )
-        self.vicon_positions = (
-            self.loaded_csvs["vicon_data"][
-                ["translation.x", "translation.y", "translation.z"]
-            ]
-            .to_numpy()
-            .T
-        )
-        self.vicon_orientation = (
-            self.loaded_csvs["vicon_data"][
-                ["rotation.w", "rotation.x", "rotation.y", "rotation.z"]
-            ]
-            .to_numpy()
-            .T
-        )
 
 
 def plot_traj(
@@ -250,7 +179,7 @@ def main(experiment_number):
         calibration_time,
         ground_truth,
         deadreckon,
-        experiment_name=experiment_name,
+        # experiment_name=experiment_name,
     )
 
 

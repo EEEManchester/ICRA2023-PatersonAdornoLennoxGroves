@@ -1,14 +1,10 @@
 #!/usr/bin/env python
 
 import pandas as pd
-import numpy as np
-import dqrobotics as dq
-import algorithm as dr
-
 
 class LoadExperimentData:
-    def __init__(self, experiment_number: int, csv_dir: str = "preprocessed/"):
-        self.csv_dir = csv_dir
+    def __init__(self, experiment_number: int):
+        self.csv_dir = "preprocessed/"
         self.experiments = {
             1: "03_xdata",
             2: "04_ydata",
