@@ -7,6 +7,8 @@ from dead_step_class import DeadStep
 class DeadReckoning:
     def __init__(self):
         self.ds = DeadStep()
+        self.r_hat_B_I_guess = (np.cos(-np.pi / 4) + dq.k_ * np.sin(-np.pi / 4)) * (
+            np.cos(np.pi / 4) + dq.i_ * np.sin(np.pi / 4))
 
     def generate_dualQ(self, data):
         dvl_vel_data = data.dvl_velocities  # νD readings
@@ -14,8 +16,8 @@ class DeadReckoning:
         imu_lin_acc_data = data.imu_linear_accelerations  # gI static component
 
         # Initial guess of IMU rotation WRT body based on observations recorded during experiment
-        r_hat_B_I_kminus1 = (np.cos(-np.pi / 4) + dq.k_ * np.sin(-np.pi / 4)) * (
-            np.cos(np.pi / 4) + dq.i_ * np.sin(np.pi / 4))
+        r_hat_B_I_kminus1 = self.r_hat_B_I_guess
+
         # Initial pose
         x_W_B_kminus1 = data.initial_pos  # x̂W_B[0]
 
