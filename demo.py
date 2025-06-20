@@ -255,15 +255,15 @@ def main(experiment_number):
         initial_orientation
     )
 
-    # Initial guess of IMU rotation based on observations recorded during experiment
-    r_hat_B_I_kminus1 = (np.cos(-np.pi / 4) + dq.k_ * np.sin(-np.pi / 4)) * (
-        np.cos(np.pi / 4) + dq.i_ * np.sin(np.pi / 4)
-    )
+    # # Initial guess of IMU rotation WRT body based on observations recorded during experiment
+    # r_hat_B_I_kminus1 = (np.cos(-np.pi / 4) + dq.k_ * np.sin(-np.pi / 4)) * (
+    #     np.cos(np.pi / 4) + dq.i_ * np.sin(np.pi / 4)
+    # )
 
     deadreckon = dr.generate_dualQ(
         data,
         calibration_time=calibration_time,
-        r_hat_B_I_kminus1=r_hat_B_I_kminus1,
+        # r_hat_B_I_kminus1=r_hat_B_I_kminus1,
         initial_pos=initial_pos,
     )
 

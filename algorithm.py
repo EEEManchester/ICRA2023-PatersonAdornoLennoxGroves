@@ -11,23 +11,18 @@ ds = DeadStep()
 def generate_dualQ(
     data,
     calibration_time,
-    r_hat_B_I_kminus1=dq.DQ([1]),
+    # r_hat_B_I_kminus1=dq.DQ([1]),
     initial_pos=dq.DQ([1, 0, 0, 0, 0, 0, 0, 0]),
 ):
-    """
-    Main routine to perform dead reckoning using dual quaternions.
-    Follows Algorithm 1 structure, mapping code blocks to steps:
-      • Lines 1–2: Initialization (sampling time T, initial gravity and poses)
-      • Lines 3–6: Sensor data acquisition in loop
-      • Lines 7–10: IMU alignment/calibration phase
-      • Lines 12–16: IMU+DVL fusion and pose update
-    """
     dvl_vel_data = data.dvl_velocities  # νD readings
     imu_ang_vel_data = data.imu_angular_velocities  # ωI readings
     imu_lin_acc_data = data.imu_linear_accelerations  # gI static component
 
-
-    # Initialize pose
+    # Initial guess of IMU rotation WRT body based on observations recorded during experiment
+    r_hat_B_I_kminus1 = (np.cos(-np.pi / 4) + dq.k_ * np.sin(-np.pi / 4)) * (
+      np.cos(np.pi / 4) + dq.i_ * np.sin(np.pi / 4)
+    )
+    # Initial pose
     x_W_B_kminus1 = initial_pos  # x̂W_B[0]
       
     # sample length
