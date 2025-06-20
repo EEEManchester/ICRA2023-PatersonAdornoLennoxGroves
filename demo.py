@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
 import dqrobotics as dq
 from data_loader import LoadExperimentData
+from algorithm import DeadReckoning
 
 
 def plot_traj(
@@ -129,12 +130,9 @@ def plot_traj(
 def main(experiment_number):
     data = LoadExperimentData(experiment_number)
  
-    deadreckon = dr.generate_dualQ(
-        data,
-        # calibration_time=data.calibration_time,
-        # r_hat_B_I_kminus1=r_hat_B_I_kminus1,
-        # initial_pos=data.initial_pos,
-    )
+    dr = DeadReckoning()
+    deadreckon = dr.generate_dualQ(data)
+
 
     print(deadreckon.shape)
     print(deadreckon [:,8670])
