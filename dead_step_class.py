@@ -46,6 +46,7 @@ class DeadStep:
         x_W_B_k = x_W_B_kminus1 * dq.exp((self.T / 2) * twist_hat_B_WB)
         # move to next step
         # x_W_B_kminus1 = x_W_B_k    -------- removed
+
         return x_W_B_k
     
     def combine_rotation_pose (self, k, g_I_k, w_I, v_D_k, r_hat_B_I_kminus1, x_W_B_kminus1, calibration_time):
@@ -53,5 +54,9 @@ class DeadStep:
         r_hat_B_I_k = rotation_estimator (self, k, g_I_k, r_hat_B_I_kminus1)
         if k > calibration_time:
             x_W_B_k = velocity_pose_update (self, r_hat_B_I_k, w_I, v_D_k, x_W_B_kminus1)
+            return x_W_B_k
+
+
+ 
 
 
