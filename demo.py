@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
-import algorithm as dr
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
 import dqrobotics as dq
 from data_loader import LoadExperimentData
-from algorithm import DeadReckoning
+from dead_reckon import DeadReckoning
 
 
 def plot_traj(
@@ -135,7 +134,7 @@ def main(experiment_number):
 
 
     print(deadreckon.shape)
-    print(deadreckon [:,8670])
+    print(deadreckon [:,-2])
 
 
 
