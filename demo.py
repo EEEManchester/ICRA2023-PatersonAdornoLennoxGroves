@@ -130,7 +130,7 @@ def main(experiment_number):
     data = LoadExperimentData(experiment_number)
  
     dr = DeadReckoning()
-    deadreckon = dr.generate_dualQ(data)
+    deadreckon = dr.generate_dualQ()
 
 
     print(deadreckon.shape)
