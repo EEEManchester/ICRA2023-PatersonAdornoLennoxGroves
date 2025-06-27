@@ -58,8 +58,9 @@ class DeadReckoning:
                 x_W_B_kminus1 = x_W_B_k
 
                 # Record dead-reckoned position
-                pt = dq.vec3(x_W_B_k.translation())
-                DR_x_and_y[:, index_for_DR] = pt[:2]
+                vec3_translation = dq.vec3(x_W_B_k.translation())
+                DR_x_and_y[:, index_for_DR] = vec3_translation[:2]
+                # vec4_rotation = dq.vec4(x_W_B_k.rotation())
                 yaw[index_for_DR] = x_W_B_k.rotation_angle()
                 index_for_DR += 1
 

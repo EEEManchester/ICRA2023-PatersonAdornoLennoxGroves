@@ -4,7 +4,7 @@ import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
-import dqrobotics as dq
+# import dqrobotics as dq
 from data_loader import LoadExperimentData
 from dead_reckon import DeadReckoning
 
