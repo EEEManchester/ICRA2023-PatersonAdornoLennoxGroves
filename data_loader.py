@@ -28,6 +28,20 @@ class LoadExperimentData:
         self.imu_path = f"{self.csv_dir}{self.experiment_name}_imu.csv"
         self.dvl_path = f"{self.csv_dir}{self.experiment_name}_dvl.csv"
 
+       
+        import os
+        import hashlib
+
+        def _fingerprint_csv(path, nrows=5):
+            df = pd.read_csv(path, nrows=nrows)
+            h = hashlib.md5(df.to_csv(index=False).encode()).hexdigest()
+            return os.path.abspath(path), df.shape, h
+
+        print("VICON :", _fingerprint_csv(self.vicon_path))
+        print("IMU   :", _fingerprint_csv(self.imu_path))
+        print("DVL   :", _fingerprint_csv(self.dvl_path))
+       
+       
         self.loaded_csvs = self._load_csvs()
         self._extract_data()
         self._initial_position()

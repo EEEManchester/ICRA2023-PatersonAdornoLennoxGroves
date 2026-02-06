@@ -148,6 +148,8 @@ def main(experiment_number):
 
 
 if __name__ == "__main__":
+    import os
+    print("PID:", os.getpid(), "ARGV:", __import__("sys").argv, flush=True)
     # your experiment here:
     experiment_number = 7
     # sanity check
